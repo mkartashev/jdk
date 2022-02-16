@@ -37,6 +37,7 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.concurrent.CountDownLatch;
 
 import sun.awt.util.ThreadGroupUtils;
 import sun.java2d.SunGraphicsEnvironment;
@@ -178,6 +179,13 @@ public final class X11GraphicsDevice extends GraphicsDevice
                 getDoubleBufferVisuals(screen);
             }
             for ( ; i < num; i++) {
+                if (i == 1 && screen == 1) {
+                    System.out.println("makeConfigurations(): waiting for the signal to continue...");
+                    // Wait here for the second screen to disappear from under us. Then continue
+                    // with a wrong screen number for a while.
+                    try { screenChangeLatch.await(); } catch(InterruptedException ignored) {}
+                    System.out.println("makeConfigurations(): about to call getConfigVisualId() for screen " + screen);
+                }
                 int visNum = getConfigVisualId(i, screen);
                 int depth = getConfigDepth (i, screen);
                 if (glxSupported) {
@@ -570,7 +578,11 @@ public final class X11GraphicsDevice extends GraphicsDevice
         return ("X11GraphicsDevice[screen="+screen+"]");
     }
 
+    public final CountDownLatch screenChangeLatch = new CountDownLatch(1);
+
     public void invalidate(X11GraphicsDevice device) {
+        System.out.println("GraphicsDevice: changed screen from " + screen + " -> " + device.screen);
         screen = device.screen;
+
     }
 }

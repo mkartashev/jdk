@@ -224,6 +224,7 @@ public final class X11GraphicsEnvironment extends SunGraphicsEnvironment {
         displayChanged();
     }
 
+    static volatile int step = 0;
     /**
      * (Re)create all X11GraphicsDevices, reuses a devices if it is possible.
      */
@@ -251,6 +252,12 @@ public final class X11GraphicsEnvironment extends SunGraphicsEnvironment {
              oldDevices.listIterator(); it.hasNext(); ) {
             X11GraphicsDevice gd = it.next().get();
             if (gd != null) {
+                if (step == 1) {
+                    gd.screenChangeLatch.countDown();
+                    System.out.println("initDevices(): Notified X11GraphicsDevice that it can continue; waiting for 500ms");
+                    try { Thread.sleep(500); } catch (InterruptedException ignored) {}
+                    System.out.println("initDevices(): Done waiting...");
+                }
                 gd.invalidate(devices.get(mainScreen));
                 gd.displayChanged();
             } else {
@@ -258,6 +265,7 @@ public final class X11GraphicsEnvironment extends SunGraphicsEnvironment {
                 it.remove();
             }
         }
+        step++;
     }
 
     @Override

@@ -655,6 +655,7 @@ Java_sun_awt_X11GraphicsEnvironment_initNativeData(JNIEnv *env, jobject this) {
             resetNativeData(i);
         }
         free((void *)x11Screens);
+        printf("X11GraphicsEnvironment.initNativeData(): free()d x11Screens at 0x%x\n", x11Screens);
         x11Screens = NULL;
         awt_numScreens = 0;
     }
@@ -686,12 +687,15 @@ Java_sun_awt_X11GraphicsEnvironment_initNativeData(JNIEnv *env, jobject this) {
     }
     DTRACE_PRINTLN1("allocating %i screens\n", awt_numScreens);
     /* Allocate screen data structure array */
-    x11Screens = calloc(awt_numScreens, sizeof(AwtScreenData));
+    x11Screens = calloc(awt_numScreens + 2, sizeof(AwtScreenData));
+    // +2 above is to make sure that if you access past x11Screens' end, you
+    // get a SEGV due to near-zero pointer de-reference.
     if (x11Screens == NULL) {
         JNU_ThrowOutOfMemoryError((JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2),
                                   NULL);
         return;
     }
+    printf("X11GraphicsEnvironment.initNativeData(): allocated new x11Screens[%d] at 0x%x\n", awt_numScreens, x11Screens);
 
     for (int i = 0; i < awt_numScreens; i++) {
         if (usingXinerama) {
@@ -773,6 +777,7 @@ static void ensureConfigsInited(JNIEnv* env, int screen) {
        if (env == NULL) {
            env = (JNIEnv *)JNU_GetEnv(jvm, JNI_VERSION_1_2);
        }
+       printf("ensureConfigsInited() - re-creating all configs for screen %d, x11Screens=0x%x\n", screen, x11Screens);
        getAllConfigs (env, screen, &(x11Screens[screen]));
     }
 }
